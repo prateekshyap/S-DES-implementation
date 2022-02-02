@@ -27,38 +27,16 @@ class SDES
         key1 = new char[textLength];
         key2 = new char[textLength];
 
-
         //left shift both the halves
-        temp = key[0];
-        for (i = 0; i < keyLength/2-1; ++i)
-            key[i] = key[i+1];
-        key[keyLength/2-1] = temp;
-        temp = key[keyLength/2];
-        for (i = keyLength/2; i < keyLength-1; ++i)
-            key[i] = key[i+1];
-        key[keyLength-1] = temp;
+        key = leftShift(key,keyLength);
 
         //produce key1
         for (i = 0; i < textLength; ++i)
             key1[i] = key[p8[i]];
 
-        //left shift again
-        temp = key[0];
-        for (i = 0; i < keyLength/2-1; ++i)
-            key[i] = key[i+1];
-        key[keyLength/2-1] = temp;
-        temp = key[keyLength/2];
-        for (i = keyLength/2; i < keyLength-1; ++i)
-            key[i] = key[i+1];
-        key[keyLength-1] = temp;
-        temp = key[0];
-        for (i = 0; i < keyLength/2-1; ++i)
-            key[i] = key[i+1];
-        key[keyLength/2-1] = temp;
-        temp = key[keyLength/2];
-        for (i = keyLength/2; i < keyLength-1; ++i)
-            key[i] = key[i+1];
-        key[keyLength-1] = temp;
+        //left shift again twice
+        key = leftShift(key,keyLength);
+        key = leftShift(key,keyLength);
 
         //produce key2
         for (i = 0; i < textLength; ++i)
@@ -66,22 +44,36 @@ class SDES
 
         System.out.println();
 
-        cipherText = encryptAndDecrypt(plainText,key1,key2);
+        cipherText = encryptAndDecrypt(plainText,key1,key2); //encryption
 
-        
+        //print the cipher text
         System.out.println("Cipher Text-");
         for (i = 0; i < textLength; ++i)
             System.out.print(cipherText[i]);
         System.out.println();
 
 
-        plainText = encryptAndDecrypt(cipherText,key2,key1);
+        plainText = encryptAndDecrypt(cipherText,key2,key1); //decryption is same as encryption only the keys will be reversed
 
-
+        //print the decrypted plain text
         System.out.println("Plain Text-");
         for (i = 0; i < textLength; ++i)
             System.out.print(plainText[i]);
         System.out.println();
+    }
+
+    public static char[] leftShift(char[] key, int keyLength)
+    {
+        int i = 0, j = 0;
+        char temp = key[0];
+        for (i = 0; i < keyLength/2-1; ++i)
+            key[i] = key[i+1];
+        key[keyLength/2-1] = temp;
+        temp = key[keyLength/2];
+        for (i = keyLength/2; i < keyLength-1; ++i)
+            key[i] = key[i+1];
+        key[keyLength-1] = temp;
+        return key;
     }
 
     public static char[] encryptAndDecrypt(char[] plainText, char[] key1, char[] key2)
@@ -96,7 +88,7 @@ class SDES
         R = new char[textLength];
         F = new char[textLength/2];
 
-        //apply ip on plain text
+        //apply initital permutation on plain text
         for (i = 0; i < textLength; ++i)
             permutation[i] = plainText[ip[i]];
         plainText = permutation;
@@ -143,7 +135,6 @@ class SDES
         permutation = new char[textLength];
         for (i = 0; i < textLength; ++i)
             permutation[i] = R[ep[i]];
-        //R = permutation;
 
         //xor R with k2
         permutation = xor(permutation,key2);
@@ -165,7 +156,7 @@ class SDES
         //xor L with F
         L = xor(L,F);
 
-        //apply inverse ip on the combination of L and R to get the cipher text
+        //apply inverse initial permutation on the combination of L and R to get the cipher text
         cipherText = new char[textLength];
         permutation = new char[textLength];
         for (i = 0; i < textLength/2; ++i)
@@ -182,18 +173,18 @@ class SDES
     {
         String rowStr = "", colStr = "", resultStr = "";
         int row = 0, col = 0;
-        if (boxNo == 0)
+        if (boxNo == 0) //for S0
         {
-            rowStr += text[0]; rowStr += text[3];
-            colStr += text[1]; colStr += text[2];
+            rowStr += text[0]; rowStr += text[3]; //1st and 4th bit for row
+            colStr += text[1]; colStr += text[2]; //2nd and 3rd bit for column
             row = getDecimalValue(rowStr);
             col = getDecimalValue(colStr);
             return getBinaryValue(S0[row][col]);
         }
-        else if (boxNo == 1)
+        else if (boxNo == 1) //for S1
         {
-            rowStr += text[4]; rowStr += text[7];
-            colStr += text[5]; colStr += text[6];
+            rowStr += text[4]; rowStr += text[7]; //1st and 4th bit for row
+            colStr += text[5]; colStr += text[6]; //2nd and 3rd bit for column
             row = getDecimalValue(rowStr);
             col = getDecimalValue(colStr);
             return getBinaryValue(S1[row][col]);
@@ -203,6 +194,7 @@ class SDES
 
     public static int getDecimalValue(String text)
     {
+        //convert binary strings to decimal values
         if (text.equals("00")) return 0;
         else if (text.equals("01")) return 1;
         else if (text.equals("10")) return 2;
@@ -212,6 +204,7 @@ class SDES
 
     public static String getBinaryValue(int decimal)
     {
+        //convert decimal values to binary strings
         if (decimal == 0) return "00";
         else if (decimal == 1) return "01";
         else if (decimal == 2) return "10";
@@ -221,6 +214,7 @@ class SDES
 
     public static char[] xor(char[] text1, char[] text2)
     {
+        //perform xor for two given texts
         char[] result = new char[text1.length];
         for (int i = 0; i < text1.length; ++i)
         {
@@ -229,6 +223,6 @@ class SDES
             else if (text1[i] == '1' && text2[i] == '0') result[i] = '1';
             else if (text1[i] == '1' && text2[i] == '1') result[i] = '0';
         }
-    return result;
+        return result;
     }
 }
