@@ -1,6 +1,130 @@
+/*
+Programming Problem 7.19 -
+
+Implementation of CBC using 8 bit Initial Vector and 16 bit plaintext
+Excryption Algorithm used - SDES
+*/
+
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.IOException;
+
+class CBCAndSDES
+{
+    public static int keyLength = 10, blockLength = 8;
+    public static void main(String[] args) throws IOException
+    {
+        int i, j, padding;
+        String plainText, partPlainText, cipherText = "";
+        char[] tempBlock = null, key = null, initialVector = {'1','0','1','0','1','0','1','0'}, partCipherText = {'1','0','1','0','1','0','1','0'}, keyCopy = null;
+
+        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+        
+        System.out.println("Enter the plaintext-");
+        plainText = reader.readLine();
+        System.out.println("Enter the key-");
+        key = reader.readLine().toCharArray();
+
+        padding = plainText.length()%blockLength;
+        if (padding != 0)
+        {
+            padding = blockLength-padding;
+            for (j = 0; j < padding; ++j)
+                plainText += '0';
+        }
+
+        System.out.println();
+        System.out.println("---------------------------------------------------------");
+        System.out.println("                        Encryption");
+        System.out.println("---------------------------------------------------------");
+        System.out.println();
+        
+        for (i = 0; i < plainText.length(); i += blockLength)
+        {
+            partPlainText = plainText.substring(i,i+blockLength);
+            System.out.print("PlainText for block "+((i/blockLength)+1)+": ");
+            for (j = 0; j < partPlainText.length(); ++j)
+            {
+                System.out.print(partPlainText.charAt(j));
+                if (j%4 == 3) System.out.print(" ");
+            }
+            System.out.println();
+            //copy the key
+            keyCopy = new char[keyLength];
+            for (j = 0; j < keyLength; ++j)
+                keyCopy[j] = key[j];
+            tempBlock = new char[blockLength];
+            tempBlock = SDES.xor(partPlainText.toCharArray(),partCipherText); //xor with previous ciphertext
+            partCipherText = SDES.getText(tempBlock,keyCopy,0); //get the cipher text
+            System.out.print("CipherText after encryption: ");
+            for (j = 0; j < blockLength; ++j)
+            {
+                System.out.print(partCipherText[j]);
+                if (j%4 == 3) System.out.print(" ");
+            }
+            System.out.println();
+            for (j = 0; j < blockLength; ++j)
+                cipherText += partCipherText[j];
+            System.out.println("-----------------------------------------");
+        }
+
+        System.out.println();
+        System.out.print("Final Cipher Text: ");
+        for (j = 0; j < cipherText.length(); ++j)
+        {
+            System.out.print(cipherText.charAt(j));
+            if (j%4 == 3) System.out.print(" ");
+        }
+        System.out.println();
+        System.out.println();
+        System.out.println();
+        System.out.println("---------------------------------------------------------");
+        System.out.println("                        Decryption");
+        System.out.println("---------------------------------------------------------");
+        System.out.println();
+
+        plainText = "";
+        partCipherText = new char[]{'1','0','1','0','1','0','1','0'};
+        for (i = 0; i < cipherText.length(); i += blockLength)
+        {
+            partPlainText = cipherText.substring(i,i+blockLength);
+            System.out.print("CipherText for block "+((i/blockLength)+1)+": ");
+            for (j = 0; j < partPlainText.length(); ++j)
+            {
+                System.out.print(partPlainText.charAt(j));
+                if (j%4 == 3) System.out.print(" ");
+            }
+            System.out.println();
+            //copy the key
+            keyCopy = new char[keyLength];
+            for (j = 0; j < keyLength; ++j)
+                keyCopy[j] = key[j];
+            tempBlock = SDES.getText(partPlainText.toCharArray(),keyCopy,1); //get the plain text
+            tempBlock = SDES.xor(tempBlock,partCipherText); //xor with the previous cipher text
+            partCipherText = partPlainText.toCharArray(); //store the current cipher text in previous cipher text
+            System.out.print("PlainText after decryption: ");
+            for (j = 0; j < blockLength; ++j)
+            {
+                System.out.print(tempBlock[j]);
+                if (j%4 == 3) System.out.print(" ");
+            }
+            System.out.println();
+            for (j = 0; j < blockLength; ++j)
+                plainText += tempBlock[j];
+            System.out.println("-----------------------------------------");
+        }
+
+        System.out.println();
+        System.out.print("Final Cipher Text: ");
+        for (j = 0; j < plainText.length()-padding; ++j)
+        {
+            System.out.print(plainText.charAt(j));
+            if (j%4 == 3) System.out.print(" ");
+        }
+        System.out.println();
+    }
+}
 
 class SDES
 {
@@ -13,18 +137,13 @@ class SDES
     public static int[][] S0 = {{1,0,3,2},{3,2,1,0},{0,2,1,3},{3,1,3,2}};
     public static int[][] S1 = {{0,1,2,3},{2,0,1,3},{3,0,1,0},{2,1,0,3}};
     public static int keyLength = 10, textLength = 8;
-    public static void main(String[] args)throws IOException
+    public static char[] getText(char[] plainText, char[] key, int type)
     {
         int i = 0;
         char temp = '\0';
-        char[] plainText = null, cipherText = null, key = null, key1 = null, key2 = null;
+        //char[] plainText = null, cipherText = null, key = null, key1 = null, key2 = null;
+        char[] cipherText = null, key1 = null, key2 = null;
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        
-        System.out.println("Enter the plaintext-");
-        plainText = reader.readLine().toCharArray();
-        System.out.println("Enter the key-");
-        key = reader.readLine().toCharArray();
         key1 = new char[textLength];
         key2 = new char[textLength];
         
@@ -52,34 +171,10 @@ class SDES
         for (i = 0; i < textLength; ++i)
             key2[i] = key[p8[i]];
 
-        System.out.println("----------------key1 and key2--------------");
-        for (i = 0; i < textLength; ++i)
-            System.out.print(key1[i]);
-        System.out.println();
-        for (i = 0; i < textLength; ++i)
-            System.out.print(key2[i]);
-        System.out.println();
+        if (type == 0) cipherText = encryptAndDecrypt(plainText,key1,key2); //encryption
+        else if (type == 1) cipherText = encryptAndDecrypt(plainText,key2,key1); //decryption
 
-        System.out.println("----------------key1 and key2--------------");
-
-        System.out.println();
-
-        cipherText = encryptAndDecrypt(plainText,key1,key2); //encryption
-
-        //print the cipher text
-        System.out.println("Cipher Text-");
-        for (i = 0; i < textLength; ++i)
-            System.out.print(cipherText[i]);
-        System.out.println();
-
-
-        plainText = encryptAndDecrypt(cipherText,key2,key1); //decryption is same as encryption only the keys will be reversed
-
-        //print the decrypted plain text
-        System.out.println("Plain Text-");
-        for (i = 0; i < textLength; ++i)
-            System.out.print(plainText[i]);
-        System.out.println();
+        return cipherText;
     }
 
     public static char[] leftShift(char[] key, int keyLength)
